@@ -1,0 +1,40 @@
+// SPDX-License-Identifier: MIT
+// compiler version must be greater than or equal to 0.8.8
+pragma solidity ^0.8.8;
+contract EventOrganization
+{
+    struct Event
+    {
+        address organizer;
+        string name;
+        uint date;
+        uint ticketPrice;
+        uint ticketCount;
+        uint ticketRemain;
+    }
+    mapping(uint=>Event) public events;
+    mapping(address=>mapping(uint=>uint)) public tickets;
+    uint public nextId = 1;
+
+    function createEvent(string memory _name,uint _date,uint _price,uint _ticketCount) public 
+    {
+        require(_date>block.timestamp,"Event must be organized for future");
+        require(_ticketCount>0,"You will have to publish tickets to organize an event");
+        events[nextId] = Event(msg.sender,_name,_date,_price,_ticketCount,_ticketCount);
+        nextId++;
+    }
+
+    receive() external payable{}
+
+    function buyTicket(uint _id,uint _ticketCount) public payable
+    {
+        require(_id <= nextId,"No event exist");
+        require(events[_id].date != 0,"Event doesn't exist");
+        require(block.timestamp < events[_id].date ,"Event has ended"); 
+        Event storage _event = events[_id];
+        require(msg.value == (_event.ticketPrice * _ticketCount),"You will have to pay more");
+        require(_event.ticketRemain >= _ticketCount,"Not enough tickets remain");
+        _event.ticketRemain -= _ticketCount;
+        tickets[msg.sender][_id] += _ticketCount; 
+    }
+}
